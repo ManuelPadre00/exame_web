@@ -1,102 +1,75 @@
-<?php if($_settings->chk_flashdata('success')): ?>
-<script>
-	alert_toast("<?php echo $_settings->flashdata('success') ?>",'success')
-</script>
-<?php endif;?>
-<div class="card card-outline card-primary">
-	<div class="card-header">
-		<h3 class="card-title">Lista de produtos</h3>
-		<div class="card-tools">
-			<a href="?page=product/manage_product" class="btn btn-flat btn-primary"><span class="fas fa-plus"></span>  Criar novo</a>
-		</div>
-	</div>
-	<div class="card-body">
-		<div class="container-fluid">
-        <div class="container-fluid">
-			<table class="table table-bordered table-stripped">
-				<colgroup>
-					<col width="5%">
-					<col width="15%">
-					<col width="20%">
-					<col width="35%">
-					<col width="10%">
-					<col width="15%">
-				</colgroup>
-				<thead>
-					<tr>
-						<th>#</th>
-						<th>Data de criação</th>
-						<th>Produto</th>
-						<th>Descrição</th>
-						<th>Estado</th>
-						<th>Ações</th>
-					</tr>
-				</thead>
-				<tbody>
-					<?php 
-					$i = 1;
-						$qry = $conn->query("SELECT * from `products` order by unix_timestamp(date_created) desc ");
-						while($row = $qry->fetch_assoc()):
-                            $row['description'] = strip_tags(stripslashes(html_entity_decode($row['description'])));
-					?>
-						<tr>
-							<td class="text-center"><?php echo $i++; ?></td>
-							<td><?php echo date("Y-m-d H:i",strtotime($row['date_created'])) ?></td>
-							<td><?php echo $row['product_name'] ?></td>
-							<td ><p class="truncate-1 m-0"><?php echo $row['description'] ?></p></td>
-							<td class="text-center">
-                                <?php if($row['status'] == 1): ?>
-                                    <span class="badge badge-success">Activo</span>
-                                <?php else: ?>
-                                    <span class="badge badge-danger">Inactivo</span>
-                                <?php endif; ?>
-                            </td>
-							<td align="center">
-								 <button type="button" class="btn btn-flat btn-default btn-sm dropdown-toggle dropdown-icon" data-toggle="dropdown">
-				                  		Action
-				                    <span class="sr-only">Toggle Dropdown</span>
-				                  </button>
-				                  <div class="dropdown-menu" role="menu">
-				                    <a class="dropdown-item" href="?page=product/manage_product&id=<?php echo $row['id'] ?>"><span class="fa fa-edit text-primary"></span> Editar</a>
-				                    <div class="dropdown-divider"></div>
-				                    <a class="dropdown-item delete_data" href="javascript:void(0)" data-id="<?php echo $row['id'] ?>"><span class="fa fa-trash text-danger"></span> Apagar</a>
-				                  </div>
-							</td>
-						</tr>
-					<?php endwhile; ?>
-				</tbody>
-			</table>
-		</div>
-		</div>
-	</div>
-</div>
-<script>
-	$(document).ready(function(){
-		$('.delete_data').click(function(){
-			_conf("Are you sure to delete this product permanently?","delete_product",[$(this).attr('data-id')])
-		})
-		$('.table').dataTable();
-	})
-	function delete_product($id){
-		start_loader();
-		$.ajax({
-			url:_base_url_+"classes/Master.php?f=delete_product",
-			method:"POST",
-			data:{id: $id},
-			dataType:"json",
-			error:err=>{
-				console.log(err)
-				alert_toast("An error occured.",'error');
-				end_loader();
-			},
-			success:function(resp){
-				if(typeof resp== 'object' && resp.status == 'success'){
-					location.reload();
-				}else{
-					alert_toast("An error occured.",'error');
-					end_loader();
-				}
-			}
-		})
-	}
-</script>
+<?php require_once('config.php'); ?>
+<!DOCTYPE html>
+<html lang="en">
+<?php require_once('inc/header.php') ?>
+<body>
+<?php require_once('inc/topBarNav.php') ?>
+<?php $page = isset($_GET['p']) ? $_GET['p'] : 'home';  ?>
+<?php 
+    if(!file_exists($page.".php") && !is_dir($page)){
+        include '404.html';
+    }else{
+    if(is_dir($page))
+        include $page.'/index.php';
+    else
+        include $page.'.php';
+
+    }
+?>
+<?php require_once('inc/footer.php') ?>
+<div class="modal fade" id="confirm_modal" role='dialog'>
+    <div class="modal-dialog modal-md modal-dialog-centered" role="document">
+      <div class="modal-content">
+        <div class="modal-header">
+        <h5 class="modal-title">Confirmation</h5>
+      </div>
+      <div class="modal-body">
+        <div id="delete_content"></div>
+      </div>
+      <div class="modal-footer">
+        <button type="button" class="btn btn-primary" id='confirm' onclick="">Continuar</button>
+        <button type="button" class="btn btn-secondary" data-dismiss="modal">Fechar</button>
+      </div>
+      </div>
+    </div>
+  </div>
+  <div class="modal fade" id="uni_modal" role='dialog'>
+    <div class="modal-dialog   rounded-0 modal-md modal-dialog-centered" role="document">
+      <div class="modal-content  rounded-0">
+        <div class="modal-header">
+        <h5 class="modal-title"></h5>
+      </div>
+      <div class="modal-body">
+      </div>
+      <div class="modal-footer">
+        <button type="button" class="btn btn-primary" id='submit' onclick="$('#uni_modal form').submit()">Salvar</button>
+        <button type="button" class="btn btn-secondary" data-dismiss="modal">Cancelar</button>
+      </div>
+      </div>
+    </div>
+  </div>
+  <div class="modal fade" id="uni_modal_right" role='dialog'>
+    <div class="modal-dialog  rounded-0 modal-full-height  modal-md" role="document">
+      <div class="modal-content rounded-0">
+        <div class="modal-header">
+        <h5 class="modal-title"></h5>
+        <button type="button" class="close" data-dismiss="modal" aria-label="Close">
+          <span class="fa fa-arrow-right"></span>
+        </button>
+      </div>
+      <div class="modal-body">
+      </div>
+      </div>
+    </div>
+  </div>
+  <div class="modal fade" id="viewer_modal" role='dialog'>
+    <div class="modal-dialog modal-md" role="document">
+      <div class="modal-content">
+              <button type="button" class="btn-close" data-dismiss="modal"><span class="fa fa-times"></span></button>
+              <img src="" alt="">
+      </div>
+    </div>
+  </div>
+
+</body>
+</html>

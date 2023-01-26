@@ -1,35 +1,58 @@
-<h1>Bem vindo ao <?php echo $_settings->info('name') ?></h1>
-<hr>
-<div class="container">
-  <?php 
-    $files = array();
-    $products = $conn->query("SELECT * FROM `products` order by rand() ");
-    while($row = $products->fetch_assoc()){
-      if(!is_dir(base_app.'uploads/product_'.$row['id']))
-      continue;
-      $fopen = scandir(base_app.'uploads/product_'.$row['id']);
-      foreach($fopen as $fname){
-        if(in_array($fname,array('.','..')))
-          continue;
-        $files[]= validate_image('uploads/product_'.$row['id'].'/'.$fname);
-      }
-    }
-  ?>
-  <div id="tourCarousel"  class="carousel slide" data-ride="carousel" data-interval="3000">
-      <div class="carousel-inner h-100">
-          <?php foreach($files as $k => $img): ?>
-          <div class="carousel-item  h-100 <?php echo $k == 0? 'active': '' ?>">
-              <img class="d-block w-100  h-100" src="<?php echo $img ?>" alt="">
-          </div>
-          <?php endforeach; ?>
-      </div>
-      <a class="carousel-control-prev" href="#tourCarousel" role="button" data-slide="prev">
-          <span class="carousel-control-prev-icon" aria-hidden="true"></span>
-          <span class="sr-only">Previous</span>
-      </a>
-      <a class="carousel-control-next" href="#tourCarousel" role="button" data-slide="next">
-          <span class="carousel-control-next-icon" aria-hidden="true"></span>
-          <span class="sr-only">Next</span>
-      </a>
-  </div>
-</div>
+ <!-- Header-->
+ <header class="bg-dark py-5" id="main-header">
+    <div class="container px-4 px-lg-5 my-5">
+        <div class="text-center text-white">
+            <h1 class="display-4 fw-bolder">Bem vindo a nossa loja</h1>
+            <p class="lead fw-normal text-white-50 mb-0">compre tudo que precisar para o seu animal!</p>
+        </div>
+    </div>
+</header>
+<!-- Section-->
+<section class="py-5">
+    <div class="container px-4 px-lg-5 mt-5">
+        <div class="row gx-4 gx-lg-5 row-cols-md-3 row-cols-xl-4 justify-content-center">
+            <?php 
+                $products = $conn->query("SELECT * FROM `products` where status = 1 order by rand() limit 8 ");
+                while($row = $products->fetch_assoc()):
+                    $upload_path = base_app.'/uploads/product_'.$row['id'];
+                    $img = "";
+                    if(is_dir($upload_path)){
+                        $fileO = scandir($upload_path);
+                        if(isset($fileO[2]))
+                            $img = "uploads/product_".$row['id']."/".$fileO[2];
+                        // var_dump($fileO);
+                    }
+                    $inventory = $conn->query("SELECT * FROM inventory where product_id = ".$row['id']);
+                    $inv = array();
+                    while($ir = $inventory->fetch_assoc()){
+                        $inv[$ir['size']] = number_format($ir['price']);
+                    }
+            ?>
+            <div class="col mb-5">
+                <div class="card h-100 product-item">
+                    <!-- Product image-->
+                    <img class="card-img-top w-100" src="<?php echo validate_image($img) ?>" alt="..." />
+                    <!-- Product details-->
+                    <div class="card-body p-4">
+                        <div class="text-center">
+                            <!-- Product name-->
+                            <h5 class="fw-bolder"><?php echo $row['product_name'] ?></h5>
+                            <!-- Product price-->
+                            <?php foreach($inv as $k=> $v): ?>
+                                <span><b><?php echo $k ?>: </b><?php echo $v ?></span>
+                            <?php endforeach; ?>
+                        </div>
+                    </div>
+                    <!-- Product actions-->
+                    <div class="card-footer p-4 pt-0 border-top-0 bg-transparent">
+                        <div class="text-center">
+                            <a class="btn btn-flat btn-primary "   href=".?p=view_product&id=<?php echo md5($row['id']) ?>">View</a>
+                        </div>
+                        
+                    </div>
+                </div>
+            </div>
+            <?php endwhile; ?>
+        </div>
+    </div>
+</section>
